@@ -1,0 +1,4 @@
+/.toolchain/
+/.zig-cache/
+/zig-cache/
+/dist/
