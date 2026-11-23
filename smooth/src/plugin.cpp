@@ -5,8 +5,8 @@ namespace {
 constexpr char manifest[] = R"json({
   "api": 1,
   "id": "org.effectcraft.community.smooth",
-  "name": "Smooth",
-  "category": "Stylize",
+  "name": "Lolio-smooth",
+  "category": "Fs",
   "version": "0.1.0",
   "description": "Smooths raster line art and flat-color edges.",
   "params": [
@@ -20,11 +20,11 @@ struct Rgba {
     float red, green, blue, alpha;
 };
 
-static_assert(sizeof(Pixel8) == 4 && sizeof(Rgba) == 16);
+static_assert(sizeof(Pixel16) == 8 && sizeof(Rgba) == 16);
 
 constexpr int param_count = 3;
 constexpr unsigned int param_bytes = param_count * sizeof(double);
-constexpr unsigned int frame_pixel_bytes = sizeof(Rgba) + 2 * sizeof(Pixel8);
+constexpr unsigned int frame_pixel_bytes = sizeof(Rgba) + 2 * sizeof(Pixel16);
 constexpr unsigned int page_bytes = 65536;
 constexpr unsigned int memory_limit = 1u << 30;
 
@@ -48,9 +48,9 @@ double clamp(double value, double upper)
     return value > 0.0 ? MIN(value, upper) : 0.0;
 }
 
-unsigned char quantize(float value)
+unsigned short quantize(float value)
 {
-    return static_cast<unsigned char>(clamp(value, 1.0) * 255.0 + 0.5);
+    return static_cast<unsigned short>(clamp(value, 1.0) * getMaxValue<Pixel16>() + 0.5);
 }
 
 bool is_white(Rgba pixel)
@@ -59,7 +59,7 @@ bool is_white(Rgba pixel)
            pixel.green == pixel.alpha && pixel.blue == pixel.alpha;
 }
 
-Pixel8 to_pixel8(Rgba pixel)
+Pixel16 to_pixel16(Rgba pixel)
 {
     const auto alpha = quantize(pixel.alpha);
     if (alpha == 0) {
@@ -69,10 +69,11 @@ Pixel8 to_pixel8(Rgba pixel)
             quantize(pixel.green / pixel.alpha), quantize(pixel.blue / pixel.alpha)};
 }
 
-Rgba to_rgba(Pixel8 pixel)
+Rgba to_rgba(Pixel16 pixel)
 {
-    const float alpha = pixel.alpha / 255.0f;
-    const float factor = alpha / 255.0f;
+    const float max_value = static_cast<float>(getMaxValue<Pixel16>());
+    const float alpha = pixel.alpha / max_value;
+    const float factor = alpha / max_value;
     return {pixel.red * factor, pixel.green * factor, pixel.blue * factor, alpha};
 }
 
@@ -127,10 +128,11 @@ extern "C" int ec_render(unsigned int pixels, int width, int height, unsigned in
 
     const auto* settings = reinterpret_cast<const double*>(params);
     const bool white_transparent = settings[0] != 0.0;
-    const auto range = static_cast<unsigned int>(clamp(settings[1], 100.0) * 1020) / 100;
+    const auto range = static_cast<unsigned int>(clamp(settings[1], 100.0) / 100.0 *
+                                                 4 * getMaxValue<Pixel16>());
     const auto line_weight = static_cast<float>(clamp(settings[2], 1.0) / 2.0 + 0.5);
     auto* frame = reinterpret_cast<Rgba*>(pixels);
-    auto* input = reinterpret_cast<Pixel8*>(params + frame_bytes);
+    auto* input = reinterpret_cast<Pixel16*>(params + frame_bytes);
     auto* output = input + count;
 
     Rect bounds{width, height, 0, 0};
@@ -139,7 +141,7 @@ extern "C" int ec_render(unsigned int pixels, int width, int height, unsigned in
             const int index = y * width + x;
             const auto pixel = frame[index];
             const bool white = is_white(pixel);
-            input[index] = white_transparent && white ? Pixel8{} : to_pixel8(pixel);
+            input[index] = white_transparent && white ? Pixel16{} : to_pixel16(pixel);
             output[index] = input[index];
             if (!white && input[index].alpha != 0) {
                 bounds.left = MIN(bounds.left, x);
@@ -150,8 +152,8 @@ extern "C" int ec_render(unsigned int pixels, int width, int height, unsigned in
         }
     }
     if (bounds.right > bounds.left && bounds.bottom > bounds.top && width >= 3 && height >= 3) {
-        Pixel8 transparent{};
-        Pixel8 sink{};
+        Pixel16 transparent{};
+        Pixel16 sink{};
         const auto size = static_cast<unsigned int>(count);
         smooth_pixels({width, height}, {input, size, &transparent}, {output, size, &sink},
                       bounds, range, line_weight);

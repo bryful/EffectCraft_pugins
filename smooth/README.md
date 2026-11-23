@@ -1,4 +1,4 @@
-# Smooth for EffectCraft
+# Lolio-smooth for EffectCraft
 
 セル画や塗り分け素材の輪郭を滑らかにする EffectCraft デスクトップ・CLI 用プラグインです。[loilo-inc/smooth](https://github.com/loilo-inc/smooth/tree/3f38523abddf0317f39eafa320f9de389334cb5d) の角、突起、欠けの処理を EffectCraft の Wasm プラグイン API v1 に移植しています。
 
@@ -10,7 +10,7 @@ Zig を PATH に追加し、PowerShell で実行します。別の場所にあ�
 .\build.ps1
 ```
 
-EffectCraft で **Effect → Load Effect Plug-in…** を選び、`dist/smooth.wasm` を読み込みます。**Effects & Presets → Stylize → Smooth** からレイヤーに適用できます。CLI でのエフェクト ID は `org.effectcraft.community.smooth` です。
+EffectCraft で **Effect → Load Effect Plug-in…** を選び、`dist/smooth.wasm` を読み込みます。**Effects & Presets → Fs → Lolio-smooth** からレイヤーに適用できます。CLI でのエフェクト ID は `org.effectcraft.community.smooth` です。
 
 ## パラメーター
 
@@ -20,7 +20,7 @@ EffectCraft で **Effect → Load Effect Plug-in…** を選び、`dist/smooth.w
 | Range | 同じ色とみなす RGBA の色差のしきい値（0–100） | 1 |
 | Line Weight | 線の太さを調整（0–1） | 0 |
 
-輪郭の判定と補間は元の 8 bpc 経路を使用します。EffectCraft のプリマルチプライド RGBA を処理用に変換し、変化した画素だけを書き戻します。処理対象となった HDR 画素は 8 bpc の範囲に収まります。縮小プレビューでは縮小後の画素を処理します。
+輪郭の判定と補間は 16 bpc の精度で行い、変化した画素だけを書き戻します。32 bpc プロジェクトでは、Lolio-smooth が変更した画素の HDR 値は通常の色範囲に収まります。縮小プレビューでは縮小後の画素を処理します。
 
 ## ライセンス
 

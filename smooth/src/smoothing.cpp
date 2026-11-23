@@ -5,10 +5,10 @@
 #include "8link.h"
 #include "Lack.h"
 
-void smooth_pixels(ImageSize size, PixelBuffer<Pixel8> in_ptr, PixelBuffer<Pixel8> out_ptr,
+void smooth_pixels(ImageSize size, PixelBuffer<Pixel16> in_ptr, PixelBuffer<Pixel16> out_ptr,
                    Rect extent_hint, unsigned int range, float line_weight)
 {
-    using PixelType = Pixel8;
+    using PixelType = Pixel16;
     auto* input = &size;
     auto* output = &size;
     int     in_width,in_height, out_width, out_height, i,j;

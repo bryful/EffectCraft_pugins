@@ -9,6 +9,8 @@ struct Pixel8 {
 
 struct Pixel16 {
     unsigned short alpha, red, green, blue;
+
+    bool operator==(const Pixel16&) const = default;
 };
 
 struct ImageSize {
